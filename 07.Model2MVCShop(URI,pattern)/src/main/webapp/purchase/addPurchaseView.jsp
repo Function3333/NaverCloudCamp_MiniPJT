@@ -14,7 +14,7 @@
 <script type="text/javascript">
 <!--
 function fncAddPurchase() {
-	document./purchase/addPurchase.submit();
+	document.addPurchase.submit();
 }
 -->
 </script>

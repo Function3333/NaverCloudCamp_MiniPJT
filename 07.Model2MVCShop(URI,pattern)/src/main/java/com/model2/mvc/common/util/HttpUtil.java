@@ -17,7 +17,7 @@ public class HttpUtil {
 														String path){
 		try{
 			RequestDispatcher dispatcher = request.getRequestDispatcher(path);
-			dispatcher.forward(request, response);
+			dispatcher.forward(request, response);	
 		}catch(Exception ex){
 			System.out.println("forward 오류 : " + ex);
 			throw new RuntimeException("forward 오류 : " + ex);

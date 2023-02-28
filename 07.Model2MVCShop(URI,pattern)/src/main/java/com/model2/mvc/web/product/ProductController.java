@@ -85,6 +85,7 @@ public class ProductController {
 		
 		return "forward:/product/addProductResultView.jsp";
 	}
+	 
 	
 	@PostMapping("/updateProduct")
 	public String updateProduct(@ModelAttribute ProductForm productForm, Model model) {

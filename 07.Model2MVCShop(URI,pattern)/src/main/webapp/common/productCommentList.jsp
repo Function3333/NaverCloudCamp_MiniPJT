@@ -14,7 +14,7 @@
 		</c:forEach>
 	
 
-	<form method="post" action="/addCommentAction.do?commentProdNo=${product.prodNo}">
+	<form method="post" action="/comment/addComment?commentProdNo=${product.prodNo}">
 		<div>댓글 <span id="count">${i}</span></div>
         <textarea name="content" placeholder="댓글을 입력해 주세요." rows="5" cols="100"></textarea>
         <button id="submit">등록</button>
@@ -54,12 +54,8 @@
 		<td align="center">
 			<c:choose>
 				<c:when test="${(user.userId == comment.userId) or (user.role eq 'admin')}">
-					<a href="/deleteComment.do?commentNo=${comment.commentNo}&prodNo=${product.prodNo}">삭제</a>
+					<a href="/comment/deleteComment?commentNo=${comment.commentNo}&prodNo=${product.prodNo}">삭제</a>
 				</c:when>
-			<%-- 	<c:when test="${}">
-					<a href="/deleteComment.do?commentNo=${comment.commentNo}&prodNo=${product.prodNo}">삭제</a>
-				</c:when> --%>
-				<c:otherwise></c:otherwise>
 			</c:choose>
 		</td>	
 		<td></td>
