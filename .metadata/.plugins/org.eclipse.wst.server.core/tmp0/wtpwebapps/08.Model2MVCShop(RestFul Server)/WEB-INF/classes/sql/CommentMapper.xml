@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="CommentMapper">
+ 	
+ 	
+	<resultMap id="commentSelectMap" type="comment">
+		<result property="commentNo" 	column="comment_no" 	jdbcType="DOUBLE"/>
+		<result property="prodNo" 		column="prod_no" 		jdbcType="DOUBLE"/>
+		<result property="userId" 		column="user_id" 		jdbcType="VARCHAR"/>
+		<result property="content" 		column="content" 		jdbcType="VARCHAR"/>
+		<result property="regDate" 		column="reg_date" 		jdbcType="DATE"/>
+	</resultMap>
+	
+	<!-- SQL : INSERT -->
+	<insert 	id="addComment"		parameterType="comment" >
+		INSERT
+		INTO product_comment( comment_no , prod_no , user_id , content , reg_date) 
+		VALUES	 (	NEXTVAL(seq_comment_comment_no) , #{prodNo} , #{userId} , #{content} , SYSDATE())
+		<selectKey keyProperty="commentNo" resultType="int" order="AFTER">
+    	SELECT LASTVAL(seq_comment_comment_no) FROM DUAL
+    	</selectKey> 
+	 </insert>
+	
+	<select id="getCommentList" parameterType="int" resultMap="commentSelectMap">
+		SELECT *
+		FROM product_comment
+		WHERE prod_no = #{value}
+	</select>
+	
+	<select id="getComment" parameterType="int" resultMap="commentSelectMap">
+		SELECT * 
+		FROM product_comment
+		WHERE comment_no = #{value}
+	</select>
+	
+	<delete id="deleteComment" parameterType="int">
+		DELETE
+		FROM product_comment
+		WHERE comment_no = #{value}
+	</delete>
+</mapper>
