@@ -1,0 +1,117 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- ResultSet의 캡슐화 -->
+<mapper namespace="ProductMapper">
+
+	<resultMap type="product" id="productSelectMap">
+		<result property="prodNo"  column="prod_no" jdbcType="DOUBLE" />
+		<result property="fileName"  column="image_file" jdbcType="VARCHAR" />
+		<result property="manuDate" column="manufacture_day" jdbcType="VARCHAR" />
+		<result property="price" column="price" jdbcType="BIGINT" />
+		<result property="prodDetail" column="prod_detail" jdbcType="VARCHAR" />
+		<result property="prodName" column="prod_name" jdbcType="VARCHAR" />
+		<result property="regDate" column="reg_date" jdbcType="DATE" />
+		<result property="proTranCode" column="tran_status_code" jdbcType="CHAR" />
+		<result property="stock"  column="stock" jdbcType="BIGINT" />
+	</resultMap>
+	
+	
+	<select id="getProduct" parameterType="int" resultMap="productSelectMap">
+		SELECT 
+		p.prod_no, p.prod_name, p.prod_detail, p.manufacture_day, p.price, p.image_file, p.reg_date, p.stock, t.tran_status_code
+		FROM product p LEFT OUTER JOIN transaction t
+		ON p.prod_no = t.prod_no where p.prod_no = #{prodNo}
+	</select>
+	
+	
+	<insert id="addProduct" parameterType="product" useGeneratedKeys="true" keyProperty="prodNo">
+		INSERT 
+		INTO product (prod_no, prod_name, prod_detail, manufacture_day, price, image_file, reg_date, stock) 
+		VALUES
+		(
+		NextVal(seq_product_prod_no), #{prodName}, #{prodDetail}, #{manuDate}, #{price}, #{fileName}, SYSDATE() ,#{stock})
+		<selectKey keyProperty="prodNo" resultType="int" order="AFTER">
+		SELECT LastVal(seq_product_prod_no) FROM DUAL
+    	</selectKey> 
+	</insert>
+		
+	<update id="updateProduct" parameterType="product">
+		UPDATE product
+		<set>
+			prod_name = #{prodName},
+			prod_detail = #{prodDetail},
+			manufacture_day = #{manuDate},
+			price = #{price},
+			image_file = #{fileName : VARCHAR},
+			stock = #{stock}
+		</set>
+		WHERE prod_no = #{prodNo}
+	</update>
+	
+	
+	<select id="getProductList" parameterType="search" resultMap="productSelectMap">
+		SELECT vt.*   
+	  	FROM 
+	  	(	
+	  		SELECT ROWNUM() as row_num, inner_table.*
+	  		FROM 
+	  		( 
+		  		SELECT p.*, t.tran_status_code          
+				FROM product p LEFT OUTER JOIN transaction t ON p.prod_no = t.prod_no 
+				WHERE  p.stock != 0					   
+						    <if test="searchKeyword != null">
+								AND p.prod_name LIKE '%${searchKeyword}%'		
+							</if>
+							<if test="searchCondition != null">	
+								<choose>
+									<when test="searchCondition == 0">
+										ORDER BY price
+									</when>
+									<when test="searchCondition == 1">
+										ORDER BY price DESC
+									</when>
+									<when test="searchCondition == 2">
+										ORDER BY reg_date DESC
+									</when>
+									<otherwise>
+										ORDER BY p.prod_no
+									</otherwise>
+								</choose>																					
+							</if>																																		
+						) inner_table WHERE ROWNUM() &lt;= #{endRowNum} 
+			) vt WHERE #{startRowNum} &lt;= vt.row_num AND  vt.row_num &lt;= #{endRowNum};
+	</select> 
+							
+	 <select  id="getTotalCount"  parameterType="search"	 resultType="int">
+		SELECT COUNT(*)
+	  	FROM(	SELECT p.*, t.tran_status_code
+						   FROM product p LEFT OUTER JOIN transaction t
+						   ON p.prod_no = t.prod_no WHERE t.tran_status_code is null
+						   <if test="searchKeyword != null">
+								AND p.prod_name LIKE '%${searchKeyword}%'
+							</if>
+																																									
+			) countTable						
+	 </select>	
+	 
+	 <update id="updateStock" parameterType="hashMap">
+	 	UPDATE product
+	 	<set>
+	 	stock = #{stock}
+	 	</set>  
+		WHERE prod_no = #{prodNo}
+	 </update>
+	 
+	 <select id="getAllProdName" resultType="String">
+	 	SELECT prod_name
+		FROM product p LEFT OUTER JOIN transaction t
+		ON p.prod_no = t.prod_no WHERE p.stock != 0
+		GROUP BY prod_name
+	 </select>
+	 
+	 
+</mapper>

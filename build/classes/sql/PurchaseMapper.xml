@@ -1,0 +1,222 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<!DOCTYPE mapper
+		PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+		"http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<!-- ResultSet의 캡슐화 -->
+<mapper namespace="PurchaseMapper">
+
+	<resultMap type="product" id="productSelectMap">
+		<result property="prodNo"  		column="prod_no" 			jdbcType="DOUBLE" />
+		<result property="fileName"  	column="image_file" 		jdbcType="VARCHAR" />
+		<result property="manuDate" 	column="manufacture_day" 	jdbcType="VARCHAR" />
+		<result property="price" 		column="price" 				jdbcType="BIGINT" />
+		<result property="prodDetail"	column="prod_detail" 		jdbcType="VARCHAR" />
+		<result property="prodName" 	column="prod_name" 			jdbcType="VARCHAR" />
+		<result property="regDate" 		column="reg_date" 			jdbcType="DATE" />
+		<result property="proTranCode" 	column="tran_status_code" 	jdbcType="CHAR" />
+		<result property="stock"  		column="stock" 				jdbcType="BIGINT" />
+	</resultMap>
+
+	<resultMap type="purchase" id="purchaseSelectMap">	
+		<result property="tranNo"  			column="tran_no" 			jdbcType="DOUBLE" />
+		<result property="tranCode" 		column="tran_status_code" 	jdbcType="DOUBLE" />
+		<result property="receiverPhone"	column="receiver_phone" 	jdbcType="VARCHAR" />
+		<result property="receiverName" 	column="receiver_name" 		jdbcType="VARCHAR" />
+		<result property="paymentOption" 	column="payment_option" 	jdbcType="CHAR" />
+		<result property="orderDate"  		column="order_date" 		jdbcType="DATE" />
+		<result property="dlvyRequest" 		column="dlvy_request" 		jdbcType="VARCHAR" />
+		<result property="dlvyDate" 		column="dlvy_date" 			jdbcType="DATE" />
+		<result property="dlvyAddr" 		column="demailaddr" 		jdbcType="VARCHAR" />
+		<result property="purchaseStock"  	column="purchase_stock" 	jdbcType="BIGINT" />
+						
+		<association property="purchaseProd"  javaType="Product">
+			<id property="prodNo" column="prod_no"/>
+			<result property="fileName"  column="image_file" jdbcType="VARCHAR" />
+			<result property="fileName"  	column="image_file" 		jdbcType="VARCHAR" />
+			<result property="manuDate" 	column="manufacture_day" 	jdbcType="VARCHAR" />
+			<result property="price" 		column="price" 				jdbcType="BIGINT" />
+			<result property="prodDetail"	column="prod_detail" 		jdbcType="VARCHAR" />
+			<result property="prodName" 	column="prod_name" 			jdbcType="VARCHAR" />
+			<result property="regDate" 		column="reg_date" 			jdbcType="DATE" />
+			<result property="proTranCode" 	column="tran_status_code" 	jdbcType="CHAR" />
+			<result property="stock"  		column="stock" 				jdbcType="BIGINT" />
+		</association>
+		
+		<association property="buyer" javaType="User">
+			<id property="userId" 			column="buyer_id" />
+			<result property="userName"		column="user_name" 		jdbcType="VARCHAR" />
+			<result property="password" 	column="password" 		jdbcType="VARCHAR" />
+			<result property="role" 		column="role" 			jdbcType="VARCHAR" />
+			<result property="ssn" 			column="ssn" 			jdbcType="VARCHAR" />
+			<result property="phone" 		column="cell_phone" 	jdbcType="VARCHAR" />
+			<result property="addr" 		column="addr" 			jdbcType="VARCHAR" />
+			<result property="email" 		column="email" 			jdbcType="NUMERIC"  />
+			<result property="regDate" 		column="reg_date" 		jdbcType="DATE" />
+		</association>
+	</resultMap>
+	
+	<select id="findPurchase" parameterType="int" resultMap="purchaseSelectMap">
+		SELECT t.*, p.*, u.*
+		FROM transaction t, product p, users u
+		WHERE t.prod_no = p.prod_no AND u.user_id = t.buyer_id AND tran_no = #{value}	
+	</select>
+	
+	
+	<insert id="insertPurchase" parameterType="purchase" useGeneratedKeys="true" keyProperty="tranNo">
+		INSERT INTO transaction
+		(
+		tran_no, prod_no, buyer_id, payment_option, receiver_name, receiver_phone 
+		,demailaddr, dlvy_request,tran_status_code, order_date, dlvy_date, purchase_stock
+		)
+		VALUES
+		(
+		NEXTVAL(seq_transaction_tran_no), #{purchaseProd.prodNo}, #{buyer.userId}, #{paymentOption}, 
+		#{receiverName}, #{receiverPhone}, #{dlvyAddr}, #{dlvyRequest}, #{tranCode}, SYSDATE(), #{dlvyDate : DATE}, #{purchaseStock}
+		)
+		
+		<selectKey keyProperty="tranNo" resultType="int" order="AFTER">
+    	SELECT LASTVAL(seq_transaction_tran_no) FROM DUAL
+    	</selectKey>
+	</insert> 
+	
+	<!--구매 이후 수량 수정은 불가(stock은 안 넣어놨다)  -->
+	<update id="updatePurchase" parameterType="purchase" >
+		UPDATE transaction 
+		SET
+		payment_option = #{paymentOption}, receiver_name = #{receiverName}, receiver_phone = #{receiverPhone},
+		demailaddr = #{dlvyAddr}, dlvy_request = #{dlvyRequest}, dlvy_date = #{dlvyDate}
+		WHERE tran_no = #{tranNo}
+	</update>
+	
+	<update id="updateTransCodeByProdNo" parameterType="purchase">
+		UPDATE transaction 
+		SET TRAN_STATUS_CODE = #{tranCode}
+		WHERE prod_no = #{purchaseProd.prodNo}
+	</update>
+	
+ 	<select id="getPurchaseList" parameterType="search" resultMap="purchaseSelectMap">
+ 			SELECT vt.*
+			FROM 
+			(	
+					SELECT inner_table.* , ROWNUM() AS row_seq
+					FROM		
+					(	
+						SELECT 
+						t.tran_no, t.prod_no, t.buyer_id, t.payment_option, t.receiver_name,
+						t.receiver_phone, t.demailaddr, t.dlvy_request, t. tran_status_code,
+						t.order_date, t.dlvy_date, t.purchase_stock,
+						p.prod_name, p.prod_detail, p.manufacture_day, p.price, p.image_file, p.reg_date, p.stock
+						FROM transaction t, product p
+						WHERE t.prod_no = p.prod_no AND buyer_id = #{userId}
+						ORDER BY t.tran_no 
+					) inner_table WHERE ROWNUM() &lt;= #{endRowNum} 
+			)vt WHERE #{startRowNum} &lt;= vt.row_seq AND vt.row_seq &lt;= #{endRowNum}
+	</select> 
+
+	
+	<select  id="getTotalCount"  parameterType="search"	 resultType="int">
+		  	SELECT COUNT(*)
+		  	FROM
+		  	(	
+		  	SELECT p.*, t.tran_status_code
+			FROM product p LEFT OUTER JOIN transaction t
+			ON p.prod_no = t.prod_no 
+				
+				<trim prefix="WHERE" prefixOverrides="AND">
+					<if test="userId != null">
+					AND t.buyer_id = #{userId}
+					</if>
+					
+					<if test="searchKeyword != null">
+					AND p.prod_name LIKE '%${searchKeyword}%'		
+					</if> 
+				</trim>
+									
+				<if test="searchCondition !=  null ">
+					<choose>
+						<when test="searchCondition == '0'">
+							ORDER BY price
+						</when>
+						<when test="searchCondition == '1'">
+							ORDER BY price DESC
+						</when>
+						<when test="searchCondition == '2'">
+							ORDER BY reg_date DESC
+						</when>
+						<otherwise>
+							ORDER BY p.prod_no
+						</otherwise>
+					</choose>																					
+				</if>																																		
+			) countTable						
+	 </select>
+	 
+	 <select  id="getSaleTotalCount"  parameterType="search"	 resultType="int">
+	  	SELECT COUNT(*)
+	  	FROM
+	  	(	
+	  	SELECT p.*, t.tran_status_code
+		FROM product p LEFT OUTER JOIN transaction t
+		ON p.prod_no = t.prod_no WHERE t.tran_status_code is null
+	   <if test="searchKeyword != null">
+			AND p.prod_name LIKE '%${searchKeyword}%'
+		</if>
+		) countTable						
+	 </select>
+	 
+	 <select id="getSaleList" parameterType="search" resultMap="productSelectMap">
+		SELECT *
+	  	FROM 
+	  	(	
+		  	SELECT inner_table.* , ROWNUM() AS row_seq
+		  	FROM 
+				  	( 
+				  	SELECT p.*, t.tran_status_code
+					FROM product p LEFT OUTER JOIN transaction t
+					ON p.prod_no = t.prod_no 					   
+				    <if test="searchKeyword != null">
+						AND p.prod_name LIKE '%${searchKeyword}%'
+					</if>
+			
+					<if test="searchCondition != null">	
+						<choose>
+							<when test="searchCondition == 0">
+								ORDER BY p.price
+							</when>
+							<when test="searchCondition == 1">
+								ORDER BY p.price DESC
+							</when>
+							<when test="searchCondition == 2">
+								ORDER BY reg_date DESC
+							</when>
+							<otherwise>
+								ORDER BY p.prod_no
+							</otherwise>
+						</choose>																					
+					</if>																																		
+					) inner_table 
+			WHERE ROWNUM() &lt;= #{endRowNum} 
+		)vt 
+		WHERE #{startRowNum} &lt;= vt.row_seq AND vt.row_seq &lt;= #{endRowNum} 
+	</select>
+	 
+	 <update id="updateTranCode" parameterType="purchase">
+		UPDATE transaction 
+		SET TRAN_STATUS_CODE = #{tranCode}
+		WHERE tran_no = #{tranNo}
+	</update>
+	<!-- RestController sql -->
+	<select id="getPurchaseAmount" parameterType="String" resultType="int">
+		SELECT COUNT(*)
+		FROM transaction t, users u
+		WHERE t.buyer_id = u.user_id AND u.user_id = #{value};
+	</select>
+	
+	<select id="getJsonSaleList" resultMap="purchaseSelectMap">
+		SELECT p.*, t.tran_status_code
+		FROM product p LEFT OUTER JOIN transaction t
+		ON p.prod_no = t.prod_no 
+	</select>
+</mapper>
